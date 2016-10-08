@@ -116,6 +116,7 @@ if len(changeLayers)==0:
 	sys.exit(-1)
 
 gcodeExtrude = re.compile('^G1\s+.*E0') # positive extrude
+gcodeExtrudeNoMove = re.compile('^G1\s+E0')
 lidx = 0
 outLines = []
 # Generated gcode looks like this:
@@ -145,7 +146,10 @@ while lidx < len(allLines):
 
 		# Then change filament
 		outLines.append('M600 ; Filament change gcode\n') # filament change
-		outLines.append('; Prevent blob - Ignore extrude gcode - %s'%(allLines[lidx+i])) # Extrude line
+		if gcodeExtrudeNoMove.search(allLines[lidx+i]):
+			outLines.append('; Prevent blob - Ignore extrude gcode - %s'%(allLines[lidx+i])) # Extrude line
+		else:
+			outLines.append(allLines[lidx+i])
 		lidx = lidx+i+1
 	else:
 		outLines.append(thisLine)
