@@ -30,10 +30,19 @@
 #   c. Export g-code
 #   d. In the next dialog, select the layer(s)
 #
+# Script can also be used from the command line. More than
+# one layer heights can be specified.  If none are specified,
+# then the UI will popup.
 
 import sys
 import re
 import wx
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("gcode", help="gcode filename")
+parser.add_argument("Z", nargs='*', help="filament change Z")
+args = parser.parse_args()
 
 print sys.argv
 outFile = sys.argv[1]
@@ -86,9 +95,18 @@ def getSingleFilamentChange(layerZ):
 			dlg2.Destroy()
 	return []
 
-# Choose one of the following UIs
-changeLayers = getMultiFilamentChange(layerZ)
-#changeLayers = getSingleFilamentChange(layerZ)
+# If Z values are passed in the command line, use it.
+if len(args.Z)==0:
+	# Choose one of the following UIs
+	changeLayers = getMultiFilamentChange(layerZ)
+	#changeLayers = getSingleFilamentChange(layerZ)
+else:
+	changeLayers = args.Z
+	# Validate user value -- anything could get passed in the command line
+	for z in changeLayers:
+		if float(z) not in map(float, layerZ):
+			print 'Invalid Z value %s . Z value must exactly correspond to any valid layer height in the gcode file.'%(z)
+			sys.exit(-1)
 
 if len(changeLayers)==0:
 	dlg = wx.MessageDialog(
