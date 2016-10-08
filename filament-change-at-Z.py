@@ -115,6 +115,7 @@ if len(changeLayers)==0:
 	dlg.ShowModal()
 	sys.exit(-1)
 
+gcodeExtrude = re.compile('^G1\s+.*E0') # positive extrude
 lidx = 0
 outLines = []
 # Generated gcode looks like this:
@@ -134,21 +135,18 @@ while lidx < len(allLines):
 	thisLine = allLines[lidx]
 	ob = reLayerStart.match(thisLine)
 	if ob and (float(ob.groups()[0]) in map(float, changeLayers)):
-		restoreZ = 'G1 Z%s'%(ob.groups()[0])
 		# Layer of interest - so add the M600
 		outLines.append('; %s %s'%('Change Filament at this layer ', thisLine))
 		i = 1
-		# Copy to output all lines, till the layer restore line
-		while not allLines[lidx+i].startswith(restoreZ):
+		# Copy to output all lines, till the first extrude of this layer
+		while not gcodeExtrude.search(allLines[lidx+i]):
 			outLines.append(allLines[lidx+i])
 			i = i+1
+
+		# Then change filament
 		outLines.append('M600 ; Filament change gcode\n') # filament change
-		outLines.append(allLines[lidx+i]) # Layer restore
-		if allLines[lidx+i+1].startswith('G1 E0'): # Unretract ??
-			outLines.append('; Ignoring unretract :'+allLines[lidx+i+1])
-		else:
-			outLines.append(allLines[lidx+i+1])
-		lidx = lidx+i+2
+		outLines.append('; Prevent blob - Ignore extrude gcode - %s'%(allLines[lidx+i])) # Extrude line
+		lidx = lidx+i+1
 	else:
 		outLines.append(thisLine)
 		lidx = lidx + 1
